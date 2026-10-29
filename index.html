@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>🍎 识字小课堂 · 趣味互动版</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+body {
+    font-family: 'PingFang SC', 'Microsoft YaHei', 'Segoe UI', sans-serif;
+    background: linear-gradient(145deg, #fdf8e7 0%, #fef3d4 100%);
+    min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    padding: 10px; user-select: none;
+}
+.app-container {
+    max-width: 540px; width: 100%; background: #ffffffd9;
+    border-radius: 56px 56px 44px 44px;
+    box-shadow: 0 20px 40px -10px rgba(0,0,0,0.25);
+    padding: 16px 12px 20px; border: 2px solid #fff8e7;
+}
+.top-bar { display: flex; align-items: center; justify-content: space-between; padding: 0 2px; margin-bottom: 8px; gap: 5px; flex-wrap: wrap; }
+.level-badge { background: #d9b8ff; padding: 5px 10px; border-radius: 40px; font-weight: 700; font-size: 0.82rem; color: #3d1e6b; box-shadow: 0 4px 0 #a07fd6; }
+.progress-badge { background: #ffd966; padding: 5px 10px; border-radius: 40px; font-weight: 700; font-size: 0.78rem; color: #6b4a0e; box-shadow: 0 4px 0 #dbaa2b; }
+.star-counter { background: #ffb347; padding: 5px 10px; border-radius: 40px; font-weight: 700; font-size: 0.82rem; color: #4a2e00; box-shadow: 0 4px 0 #c47e1a; }
+.level-selector { display: flex; gap: 4px; justify-content: center; margin: 4px 0 8px; flex-wrap: wrap; }
+.level-chip { padding: 5px 8px; border-radius: 30px; background: #f0e7d8; border: 2px solid #d9c9ae; font-weight: 700; color: #6b5a42; cursor: pointer; font-size: 0.7rem; box-shadow: 0 3px 0 #c4b296; white-space: nowrap; }
+.level-chip.active { background: #ffd966; border-color: #dbaa2b; color: #4a2e0e; box-shadow: 0 3px 0 #b18b29; }
+.level-chip:active { transform: translateY(2px); box-shadow: 0 1px 0 #c4b296; }
+
+.character-card {
+    background: #fffef7; border-radius: 36px; padding: 14px 8px 10px; margin-bottom: 8px;
+    box-shadow: inset 0 -6px 0 #e8dcc0, inset 0 6px 10px #fff9e6, 0 14px 20px -12px rgba(0,0,0,0.3);
+    border: 2px solid #f9eec1; text-align: center; cursor: pointer;
+}
+.big-hanzi { font-size: 5.8rem; line-height: 1.1; font-weight: 900; color: #3d2b1a; text-shadow: 4px 4px 0 #ffd58c; letter-spacing: 4px; }
+.pinyin { font-size: 1.4rem; font-weight: 600; color: #b05d1e; background: #ffeed9; display: inline-block; padding: 3px 20px; border-radius: 50px; margin: 3px 0 2px; box-shadow: 0 3px 0 #dbbd95; }
+.meaning { font-size: 1rem; color: #6b4f2b; background: #fbf3e2; display: inline-block; padding: 3px 18px; border-radius: 40px; margin-top: 2px; }
+.word-example { font-size: 0.95rem; color: #795d36; margin-top: 6px; background: #fff5e2; padding: 5px 14px; border-radius: 40px; display: inline-block; border: 1px dashed #dbbd91; }
+.writing-requirement { background: #e8f0fe; border-radius: 22px; padding: 5px 12px; margin: 6px 2px 0; font-size: 0.78rem; color: #1a4d80; display: flex; align-items: center; justify-content: center; gap: 5px; border: 1px dashed #aac9f0; }
+.actions { display: flex; flex-wrap: wrap; gap: 7px; justify-content: center; margin: 8px 0 4px; }
+.action-btn { flex: 1 0 92px; border: none; border-radius: 50px; padding: 11px 4px; font-size: 0.92rem; font-weight: 700; color: #4a2e0e; background: #ffe9a7; box-shadow: 0 6px 0 #dbb13b; display: flex; align-items: center; justify-content: center; gap: 3px; cursor: pointer; border: 1px solid #fff5d5; }
+.action-btn:active { box-shadow: 0 2px 0 #dbb13b; transform: translateY(4px); }
+.play-btn { background: #b5e3b5; box-shadow: 0 6px 0 #6da06d; color: #214d21; }
+.game-btn { background: #ffb8b8; box-shadow: 0 6px 0 #c95f5f; color: #5e1a1a; }
+.next-btn { background: #aad4ff; box-shadow: 0 6px 0 #5f8fca; color: #113355; }
+.hint { text-align: center; margin-top: 10px; font-size: 0.82rem; color: #b99e7a; background: #fcf6e9; padding: 6px 12px; border-radius: 32px; border: 1px solid #efe0c9; }
+@keyframes pop { 0%,100%{transform:scale(1)} 50%{transform:scale(1.06)} }
+.pop { animation: pop 0.3s ease-in-out; }
+@keyframes flyStar { 0%{opacity:1;transform:translateY(0) scale(1)} 100%{opacity:0;transform:translateY(-120px) scale(1.8)} }
+.star-fly { position: fixed; pointer-events: none; font-size: 2rem; animation: flyStar 0.8s ease-out forwards; z-index: 999; }
+
+/* 游戏弹窗 */
+.game-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.55); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 10px; visibility: hidden; opacity: 0; transition: opacity 0.2s, visibility 0.2s; }
+.game-overlay.active { visibility: visible; opacity: 1; }
+.game-modal { background: #fffef7; max-width: 480px; width: 100%; border-radius: 36px; padding: 16px 14px 20px; box-shadow: 0 30px 50px rgba(0,0,0,0.3); border: 3px solid #fff0c0; text-align: center; transform: scale(0.9); transition: transform 0.2s; max-height: 92vh; overflow-y: auto; }
+.game-overlay.active .game-modal { transform: scale(1); }
+.game-title { font-size: 1.35rem; font-weight: 800; color: #4a2e0e; margin-bottom: 2px; }
+.game-subtitle { font-size: 0.85rem; color: #8b6f4a; margin-bottom: 10px; }
+.game-content { margin: 8px 0 12px; }
+.game-result { font-size: 1rem; font-weight: 700; color: #2e7d32; margin: 6px 0; min-height: 1.5rem; }
+.game-close-btn { margin-top: 8px; background: #d9d9d9; border: none; border-radius: 40px; padding: 9px 32px; font-size: 1rem; font-weight: 700; color: #4a4a4a; box-shadow: 0 4px 0 #a0a0a0; cursor: pointer; }
+.game-close-btn:active { transform: translateY(3px); box-shadow: 0 1px 0 #a0a0a0; }
+
+/* ========== 游戏组件 ========== */
+.mole-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 14px 0; }
+.mole-hole { width: 100%; aspect-ratio: 1; background: #8B5E3C; border-radius: 50% 50% 40% 40%; position: relative; overflow: hidden; box-shadow: inset 0 6px 8px rgba(0,0,0,0.4); cursor: pointer; border: 3px solid #6B4226; }
+.mole-hole::after { content: ''; position: absolute; bottom: 0; left: 10%; width: 80%; height: 30%; background: #5C3A1E; border-radius: 50%; }
+.mole { position: absolute; bottom: -100%; left: 10%; width: 80%; height: 80%; background: #f5d6a0; border-radius: 50% 50% 40% 40%; display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: 900; color: #3d2b1a; transition: bottom 0.2s ease-out; cursor: pointer; border: 2px solid #d4a96a; }
+.mole.up { bottom: 5%; }
+.mole.correct { background: #b5e3b5; border-color: #4ca64c; }
+.mole.wrong { background: #ffb8b8; border-color: #cc5555; animation: shake 0.3s; }
+@keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-5px)} 75%{transform:translateX(5px)} }
+
+.memory-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 14px 0; }
+.memory-card { aspect-ratio: 1; border-radius: 14px; background: linear-gradient(145deg, #aad4ff, #7ab8f0); display: flex; align-items: center; justify-content: center; font-size: 1.8rem; font-weight: 900; color: #fff; cursor: pointer; box-shadow: 0 4px 0 #5f8fca; transition: all 0.25s; position: relative; transform-style: preserve-3d; border: 2px solid #8ec0f0; }
+.memory-card.flipped { background: #fff2d6; color: #3d2b1a; border-color: #ffd966; box-shadow: 0 4px 0 #dbaa2b; transform: rotateY(180deg); }
+.memory-card.matched { background: #b5e3b5; border-color: #4ca64c; box-shadow: 0 4px 0 #4ca64c; pointer-events: none; opacity: 0.7; }
+.memory-card .front { position: absolute; backface-visibility: hidden; font-size: 1.6rem; }
+.memory-card .back { position: absolute; backface-visibility: hidden; transform: rotateY(180deg); }
+
+.match3-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 14px 0; }
+.match3-item { aspect-ratio: 1; border-radius: 14px; background: #fff2d6; border: 2px solid #ffd966; display: flex; align-items: center; justify-content: center; font-size: 1.6rem; font-weight: 900; color: #3d2b1a; cursor: pointer; box-shadow: 0 4px 0 #dbaa2b; transition: all 0.15s; }
+.match3-item:active { transform: scale(0.95); }
+.match3-item.selected { background: #ffe69b; border-color: #e6a817; box-shadow: 0 4px 0 #b88a1a; transform: scale(0.92); }
+.match3-item.removed { opacity: 0; pointer-events: none; transform: scale(0); }
+.match3-item.wrong { animation: shake 0.3s; }
+
+.drag-area { display: flex; justify-content: center; gap: 8px; margin: 14px 0; flex-wrap: wrap; }
+.drag-slot { width: 64px; height: 64px; border-radius: 18px; background: #f5f5f5; border: 3px dashed #ccc; display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: 900; color: #3d2b1a; transition: all 0.15s; }
+.drag-slot.hover { background: #ffe9a7; border-color: #dbb13b; transform: scale(1.05); }
+.drag-slot.filled { background: #b5e3b5; border: 3px solid #4ca64c; }
+.drag-pieces { display: flex; justify-content: center; gap: 10px; margin: 10px 0; flex-wrap: wrap; }
+.drag-piece { width: 56px; height: 56px; border-radius: 16px; background: #fff2d6; border: 2px solid #ffd966; display: flex; align-items: center; justify-content: center; font-size: 1.7rem; font-weight: 900; color: #3d2b1a; cursor: grab; box-shadow: 0 4px 0 #dbaa2b; transition: all 0.1s; }
+.drag-piece:active { cursor: grabbing; transform: translateY(3px); box-shadow: 0 1px 0 #dbaa2b; }
+.drag-piece.dragging { opacity: 0.5; }
+.drag-piece.used { opacity: 0.2; pointer-events: none; }
+
+.listen-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 14px; margin: 16px 0; }
+.listen-item { width: 80px; height: 80px; border-radius: 50%; background: #e8f0fe; border: 3px solid #aac9f0; display: flex; align-items: center; justify-content: center; font-size: 2.2rem; font-weight: 900; color: #1a4d80; cursor: pointer; box-shadow: 0 5px 0 #7fa8d9; transition: all 0.1s; }
+.listen-item:active { transform: translateY(4px); box-shadow: 0 1px 0 #7fa8d9; }
+.listen-item.correct { background: #b5e3b5; border-color: #4ca64c; box-shadow: 0 5px 0 #4ca64c; }
+.listen-item.wrong { background: #ffb8b8; border-color: #cc5555; box-shadow: 0 5px 0 #cc5555; animation: shake 0.3s; }
+
+.speaker-btn { width: 70px; height: 70px; border-radius: 50%; background: #ffe9a7; display: flex; align-items: center; justify-content: center; font-size: 2.6rem; margin: 8px auto; cursor: pointer; box-shadow: 0 5px 0 #dbb13b; border: none; }
+.speaker-btn:active { transform: translateY(4px); box-shadow: 0 1px 0 #dbb13b; }
+
+.timer-bar { height: 10px; background: #eee; border-radius: 5px; overflow: hidden; margin: 8px 0; }
+.timer-fill { height: 100%; background: linear-gradient(90deg, #66bb6a, #ffa726, #ef5350); border-radius: 5px; transition: width 0.1s linear; }
+
+@media (max-width: 400px) {
+    .big-hanzi { font-size: 4.6rem; }
+    .action-btn { font-size: 0.8rem; padding: 9px 2px; flex: 1 0 72px; }
+    .mole { font-size: 1.5rem; }
+    .memory-card { font-size: 1.4rem; }
+    .match3-item { font-size: 1.3rem; }
+    .listen-item { width: 64px; height: 64px; font-size: 1.8rem; }
+    .level-chip { font-size: 0.65rem; padding: 4px 6px; }
+}
+</style>
+</head>
+<body>
+
+<div class="app-container">
+    <div class="top-bar">
+        <div class="level-badge" id="levelBadge">🧸 <span id="levelLabel">学前启蒙</span></div>
+        <div class="progress-badge">📚 <span id="currentIndexDisplay">1</span>/<span id="totalCountDisplay">100</span></div>
+        <div class="star-counter">⭐ <span id="starCountDisplay">0</span></div>
+    </div>
+
+    <div class="level-selector" id="levelSelector">
+        <div class="level-chip active" data-level="1">🧸 学前启蒙</div>
+        <div class="level-chip" data-level="2">📖 小学基础</div>
+        <div class="level-chip" data-level="3">✏️ 小学进阶</div>
+        <div class="level-chip" data-level="4">🎓 小学拓展</div>
+    </div>
+
+    <div class="character-card" id="characterCard">
+        <div class="big-hanzi" id="bigHanzi">人</div>
+        <div class="pinyin" id="pinyin">rén</div>
+        <div class="meaning" id="meaning">人类 / 大人</div>
+        <div class="word-example" id="wordExample">👨 大人 · 人们</div>
+        <div class="writing-requirement" id="writingRequirement">
+            <span>✏️</span><span id="writingReqText">认识字形，能口头组词</span>
+        </div>
+    </div>
+
+    <div class="actions">
+        <button class="action-btn play-btn" id="playSoundBtn">🔊 听一听</button>
+        <button class="action-btn" id="learnBtn">✍️ 学一学</button>
+        <button class="action-btn game-btn" id="gameBtn">🎮 玩一玩</button>
+        <button class="action-btn next-btn" id="nextBtn">➡️ 下一个</button>
+    </div>
+
+    <div class="hint" id="hintMessage">✨ 点击“玩一玩”，体验趣味互动游戏</div>
+</div>
+
+<div class="game-overlay" id="gameOverlay">
+    <div class="game-modal">
+        <div class="game-title" id="gameTitle">🎮 小游戏</div>
+        <div class="game-subtitle" id="gameSubtitle"></div>
+        <div class="game-content" id="gameContent"></div>
+        <div class="game-result" id="gameResult"></div>
+        <button class="game-close-btn" id="closeGameBtn">关闭</button>
+    </div>
+</div>
+
+<script>
+(function() {
+    'use strict';
+
+    // ==================== 字库（每级100字） ====================
+    var LEVEL1 = ['人','口','手','日','月','水','火','山','大','小','上','下','左','右','中','天','地','云','风','雨','木','林','森','土','石','田','力','刀','弓','车','门','窗','床','桌','椅','碗','筷','勺','杯','盘','爸','妈','爷','奶','哥','姐','弟','妹','我','你','他','们','牛','羊','马','猪','狗','猫','鸡','鸭','鱼','鸟','虫','花','草','树','叶','果','米','面','白','黑','红','黄','绿','蓝','紫','灰','高','矮','多','少','长','短','快','慢','早','晚','来','去','坐','走','跑','跳','飞','笑','哭','吃','喝','睡'];
+    var LEVEL2 = ['春','夏','秋','冬','东','南','西','北','国','家','学','校','老','师','同','朋','友','爱','心','快','乐','美','好','新','旧','远','近','前','后','里','外','开','关','出','入','回','问','答','说','听','看','读','写','画','唱','玩','做','工','作','习','时','间','年','岁','今','明','昨','周','末','午','饭','菜','汤','肉','蛋','奶','茶','糖','盐','油','衣','服','鞋','帽','袜','裤','裙','穿','脱','洗','房','屋','院','路','桥','街','村','城','市','园','公','车','船','机','灯','钟','伞','包','钱'];
+    var LEVEL3 = ['繁','锻','炼','坚','持','努','力','奋','斗','拼','博','勇','敢','毅','恒','耐','信','诚','责','任','担','当','奉','献','关','怀','尊','敬','谦','虚','礼','貌','团','结','协','作','沟','通','表','达','倾','听','理','解','宽','容','感','恩','思','考','创','造','探','索','发','现','研','究','观','察','记','录','总','结','反','进','步','成','长','变','化','选','择','决','定','计','划','目','标','梦','想','希','望','未','来','环','境','保','护','约','资','源','科','技'];
+    var LEVEL4 = ['韵','巍','澎','湃','磅','礴','璀','璨','瑰','丽','浩','瀚','苍','穹','蜿','蜒','曲','折','葱','郁','斑','斓','旖','旎','缥','缈','朦','胧','徜','徉','徘','徊','踌','躇','蹒','跚','铿','锵','铮','潺','淙','萧','瑟','缩','斟','酌','踯','躅','迤','逦','潋','滟','氤','氲','馥','翕','缱','绻','遒','劲','玮','渺','茫','茏','驳'];
+
+    var PINYIN_MAP = {
+        '人':'rén','口':'kǒu','手':'shǒu','日':'rì','月':'yuè','水':'shuǐ','火':'huǒ','山':'shān','大':'dà','小':'xiǎo','上':'shàng','下':'xià','左':'zuǒ','右':'yòu','中':'zhōng','天':'tiān','地':'dì','云':'yún','风':'fēng','雨':'yǔ','木':'mù','林':'lín','森':'sēn','土':'tǔ','石':'shí','田':'tián','力':'lì','刀':'dāo','弓':'gōng','车':'chē','门':'mén','窗':'chuāng','床':'chuáng','桌':'zhuō','椅':'yǐ','碗':'wǎn','筷':'kuài','勺':'sháo','杯':'bēi','盘':'pán','爸':'bà','妈':'mā','爷':'yé','奶':'nǎi','哥':'gē','姐':'jiě','弟':'dì','妹':'mèi','我':'wǒ','你':'nǐ','他':'tā','们':'men','牛':'niú','羊':'yáng','马':'mǎ','猪':'zhū','狗':'gǒu','猫':'māo','鸡':'jī','鸭':'yā','鱼':'yú','鸟':'niǎo','虫':'chóng','花':'huā','草':'cǎo','树':'shù','叶':'yè','果':'guǒ','米':'mǐ','面':'miàn','白':'bái','黑':'hēi','红':'hóng','黄':'huáng','绿':'lǜ','蓝':'lán','紫':'zǐ','灰':'huī','高':'gāo','矮':'ǎi','多':'duō','少':'shǎo','长':'cháng','短':'duǎn','快':'kuài','慢':'màn','早':'zǎo','晚':'wǎn','来':'lái','去':'qù','坐':'zuò','走':'zǒu','跑':'pǎo','跳':'tiào','飞':'fēi','笑':'xiào','哭':'kū','吃':'chī','喝':'hē','睡':'shuì',
+        '春':'chūn','夏':'xià','秋':'qiū','冬':'dōng','东':'dōng','南':'nán','西':'xī','北':'běi','国':'guó','家':'jiā','学':'xué','校':'xiào','老':'lǎo','师':'shī','同':'tóng','朋':'péng','友':'yǒu','爱':'ài','心':'xīn','乐':'lè','美':'měi','好':'hǎo','新':'xīn','旧':'jiù','远':'yuǎn','近':'jìn','前':'qián','后':'hòu','里':'lǐ','外':'wài','开':'kāi','关':'guān','出':'chū','入':'rù','回':'huí','问':'wèn','答':'dá','说':'shuō','听':'tīng','看':'kàn','读':'dú','写':'xiě','画':'huà','唱':'chàng','玩':'wán','做':'zuò','工':'gōng','作':'zuò','习':'xí','时':'shí','间':'jiān','年':'nián','岁':'suì','今':'jīn','明':'míng','昨':'zuó','周':'zhōu','末':'mò','午':'wǔ','饭':'fàn','菜':'cài','汤':'tāng','肉':'ròu','蛋':'dàn','茶':'chá','糖':'táng','盐':'yán','油':'yóu','衣':'yī','服':'fú','鞋':'xié','帽':'mào','袜':'wà','裤':'kù','裙':'qún','穿':'chuān','脱':'tuō','洗':'xǐ','房':'fáng','屋':'wū','院':'yuàn','路':'lù','桥':'qiáo','街':'jiē','村':'cūn','城':'chéng','市':'shì','园':'yuán','公':'gōng','船':'chuán','机':'jī','灯':'dēng','钟':'zhōng','伞':'sǎn','包':'bāo','钱':'qián',
+        '繁':'fán','锻':'duàn','炼':'liàn','坚':'jiān','持':'chí','努':'nǔ','奋':'fèn','斗':'dòu','拼':'pīn','博':'bó','勇':'yǒng','敢':'gǎn','毅':'yì','恒':'héng','耐':'nài','信':'xìn','诚':'chéng','责':'zé','任':'rèn','担':'dān','当':'dāng','奉':'fèng','献':'xiàn','怀':'huái','尊':'zūn','敬':'jìng','谦':'qiān','虚':'xū','礼':'lǐ','貌':'mào','团':'tuán','结':'jié','协':'xié','沟':'gōu','通':'tōng','表':'biǎo','达':'dá','倾':'qīng','理':'lǐ','解':'jiě','宽':'kuān','容':'róng','感':'gǎn','恩':'ēn','思':'sī','考':'kǎo','创':'chuàng','造':'zào','探':'tàn','索':'suǒ','发':'fā','现':'xiàn','研':'yán','究':'jiū','观':'guān','察':'chá','记':'jì','录':'lù','总':'zǒng','反':'fǎn','进':'jìn','步':'bù','成':'chéng','变':'biàn','化':'huà','选':'xuǎn','择':'zé','决':'jué','定':'dìng','计':'jì','划':'huà','目':'mù','标':'biāo','梦':'mèng','想':'xiǎng','希':'xī','望':'wàng','未':'wèi','环':'huán','境':'jìng','保':'bǎo','护':'hù','约':'yuē','资':'zī','源':'yuán','科':'kē','技':'jì',
+        '韵':'yùn','巍':'wēi','澎':'péng','湃':'pài','磅':'páng','礴':'bó','璀':'cuǐ','璨':'càn','瑰':'guī','丽':'lì','浩':'hào','瀚':'hàn','苍':'cāng','穹':'qióng','蜿':'wān','蜒':'yán','曲':'qū','折':'zhé','葱':'cōng','郁':'yù','斑':'bān','斓':'lán','旖':'yǐ','旎':'nǐ','缥':'piāo','缈':'miǎo','朦':'méng','胧':'lóng','徜':'cháng','徉':'yáng','徘':'pái','徊':'huái','踌':'chóu','躇':'chú','蹒':'pán','跚':'shān','铿':'kēng','锵':'qiāng','铮':'zhēng','潺':'chán','淙':'cóng','萧':'xiāo','瑟':'sè','缩':'suō','斟':'zhēn','酌':'zhuó','踯':'zhí','躅':'zhú','迤':'yǐ','逦':'lǐ','潋':'liàn','滟':'yàn','氤':'yīn','氲':'yūn','馥':'fù','翕':'xī','缱':'qiǎn','绻':'quǎn','遒':'qiú','劲':'jìng','玮':'wěi','渺':'miǎo','茫':'máng','茏':'lóng','驳':'bó'
+    };
+
+    var STROKE_MAP = {'人':2,'口':3,'手':4,'日':4,'月':4,'水':4,'火':4,'山':3,'大':3,'小':3,'上':3,'下':3,'左':5,'右':5,'中':4,'天':4,'地':6,'云':4,'风':4,'雨':8,'木':4,'林':8,'森':12,'土':3,'石':5,'田':5,'力':2,'刀':2,'弓':3,'车':4,'门':3,'窗':12,'床':7,'桌':10,'椅':12,'碗':13,'筷':13,'勺':3,'杯':8,'盘':11,'爸':8,'妈':6,'爷':6,'奶':5,'哥':10,'姐':8,'弟':7,'妹':8,'我':7,'你':7,'他':5,'们':5,'牛':4,'羊':6,'马':3,'猪':11,'狗':8,'猫':11,'鸡':7,'鸭':10,'鱼':8,'鸟':5,'虫':6,'花':7,'草':9,'树':9,'叶':5,'果':8,'米':6,'面':9,'白':5,'黑':12,'红':6,'黄':11,'绿':11,'蓝':13,'紫':12,'灰':6,'高':10,'矮':13,'多':6,'少':4,'长':4,'短':12,'快':7,'慢':14,'早':6,'晚':11,'来':7,'去':5,'坐':7,'走':7,'跑':12,'跳':13,'飞':3,'笑':10,'哭':10,'吃':6,'喝':12,'睡':13,'春':9,'夏':10,'秋':9,'冬':5,'东':5,'南':9,'西':6,'北':5,'国':8,'家':10,'学':8,'校':10,'老':6,'师':6,'同':6,'朋':8,'友':4,'爱':10,'心':4,'乐':5,'美':9,'好':6,'新':13,'旧':5,'远':7,'近':7,'前':9,'后':6,'里':7,'外':5,'开':4,'关':6,'出':5,'入':2,'回':6,'问':6,'答':12,'说':9,'听':7,'看':9,'读':10,'写':5,'画':8,'唱':11,'玩':8,'做':11,'工':3,'作':7,'习':3,'时':7,'间':7,'年':6,'岁':6,'今':4,'明':8,'昨':9,'周':8,'末':5,'午':4,'饭':7,'菜':11,'汤':6,'肉':6,'蛋':11,'茶':9,'糖':16,'盐':10,'油':8,'衣':6,'服':8,'鞋':15,'帽':12,'袜':10,'裤':12,'裙':12,'穿':9,'脱':11,'洗':9,'房':8,'屋':9,'院':9,'路':13,'桥':10,'街':12,'村':7,'城':9,'市':5,'园':7,'公':4,'船':11,'机':6,'灯':6,'钟':9,'伞':6,'包':5,'钱':10,'繁':17,'锻':14,'炼':9,'坚':7,'持':9,'努':7,'奋':8,'斗':4,'拼':9,'博':12,'勇':9,'敢':11,'毅':15,'恒':9,'耐':9,'信':9,'诚':8,'责':8,'任':6,'担':8,'当':6,'奉':8,'献':13,'怀':7,'尊':12,'敬':12,'谦':12,'虚':11,'礼':5,'貌':14,'团':6,'结':9,'协':6,'沟':7,'通':10,'表':8,'达':6,'倾':10,'理':11,'解':13,'宽':10,'容':10,'感':13,'恩':10,'思':9,'考':6,'创':6,'造':10,'探':11,'索':10,'发':5,'现':8,'研':9,'究':7,'观':6,'察':14,'记':5,'录':8,'总':9,'反':4,'进':7,'步':7,'成':6,'变':8,'化':4,'选':9,'择':8,'决':6,'定':8,'计':4,'划':6,'目':5,'标':9,'梦':11,'想':13,'希':7,'望':11,'未':5,'环':8,'境':14,'保':9,'护':7,'约':6,'资':10,'源':13,'科':9,'技':7,'韵':13,'巍':20,'澎':15,'湃':12,'磅':15,'礴':21,'璀':15,'璨':17,'瑰':13,'丽':7,'浩':10,'瀚':19,'苍':7,'穹':8,'蜿':14,'蜒':12,'曲':6,'折':7,'葱':12,'郁':8,'斑':12,'斓':16,'旖':14,'旎':11,'缥':14,'缈':12,'朦':17,'胧':9,'徜':11,'徉':9,'徘':11,'徊':9,'踌':14,'躇':19,'蹒':17,'跚':12,'铿':12,'锵':14,'铮':11,'潺':15,'淙':11,'萧':11,'瑟':13,'缩':14,'斟':13,'酌':10,'踯':15,'躅':20,'迤':8,'逦':10,'潋':14,'滟':13,'氤':10,'氲':13,'馥':18,'翕':12,'缱':16,'绻':11,'遒':11,'劲':7,'玮':8,'渺':12,'茫':9,'茏':8,'驳':7};
+
+    var EXAMPLE_MAP = {'人':'👨 大人 · 人们','口':'👄 开口 · 门口','手':'✋ 手掌 · 手工','日':'☀️ 日出 · 生日','月':'🌙 月光 · 八月','水':'💧 水果 · 开水','火':'🔥 火车 · 大火','山':'⛰️ 高山 · 山水','大':'🐘 大象 · 大人','小':'🐜 小鸟 · 小心','上':'⬆️ 上面 · 上去','下':'⬇️ 下面 · 下来','左':'👈 左边 · 左手','右':'👉 右边 · 右手','中':'🎯 中间 · 中国','天':'🌤️ 天空 · 今天','地':'🌍 大地 · 土地','云':'☁️ 白云 · 云朵','风':'🌬️ 大风 · 风雨','雨':'🌧️ 下雨 · 雨水','木':'🪵 木头 · 木马','林':'🌲 森林 · 树林','森':'🌳 森林 · 森严','土':'🪨 土地 · 泥土','石':'🪨 石头 · 石子','田':'🌾 田地 · 田野','力':'💪 力气 · 用力','刀':'🔪 小刀 · 刀子','弓':'🏹 弓箭 · 拉弓','车':'🚗 汽车 · 车子','门':'🚪 大门 · 门口','窗':'🪟 窗户 · 窗外','床':'🛏️ 小床 · 起床','桌':'🪑 桌子 · 书桌','椅':'🪑 椅子 · 桌椅','碗':'🥣 饭碗 · 一碗','筷':'🥢 筷子 · 碗筷','勺':'🥄 勺子 · 汤勺','杯':'🥤 杯子 · 水杯','盘':'🍽️ 盘子 · 果盘','爸':'👨 爸爸 · 老爸','妈':'👩 妈妈 · 老妈','爷':'👴 爷爷 · 老爷','奶':'👵 奶奶 · 牛奶','哥':'👦 哥哥 · 大哥','姐':'👧 姐姐 · 大姐','弟':'👦 弟弟 · 小弟','妹':'👧 妹妹 · 小妹','我':'🙋 我们 · 自我','你':'🙋 你好 · 你们','他':'👤 他们 · 其他','们':'👥 我们 · 你们','牛':'🐂 水牛 · 牛奶','羊':'🐑 山羊 · 羊毛','马':'🐴 马儿 · 马路','猪':'🐖 小猪 · 猪肉','狗':'🐕 小狗 · 狗狗','猫':'🐈 小猫 · 猫咪','鸡':'🐔 公鸡 · 鸡蛋','鸭':'🦆 鸭子 · 烤鸭','鱼':'🐟 小鱼 · 金鱼','鸟':'🐦 小鸟 · 鸟儿','虫':'🐛 虫子 · 昆虫','花':'🌸 花朵 · 开花','草':'🌿 小草 · 草地','树':'🌳 大树 · 树叶','叶':'🍃 树叶 · 叶子','果':'🍎 水果 · 苹果','米':'🍚 大米 · 米饭','面':'🍜 面条 · 面包','白':'⚪ 白色 · 白云','黑':'⚫ 黑色 · 黑夜','红':'🔴 红色 · 红花','黄':'🟡 黄色 · 黄花','绿':'🟢 绿色 · 绿叶','蓝':'🔵 蓝色 · 蓝天','紫':'🟣 紫色 · 紫花','灰':'🌫️ 灰色 · 灰尘','高':'⬆️ 高兴 · 高大','矮':'⬇️ 矮小 · 高矮','多':'➕ 多少 · 很多','少':'➖ 多少 · 很少','长':'📏 长短 · 长大','短':'📏 短小 · 长短','快':'⚡ 快乐 · 很快','慢':'🐢 慢走 · 很慢','早':'🌅 早上 · 早安','晚':'🌃 晚上 · 晚安','来':'👋 过来 · 回来','去':'🚶 出去 · 回去','坐':'🪑 坐下 · 坐好','走':'🚶 走路 · 行走','跑':'🏃 跑步 · 奔跑','跳':'🤸 跳高 · 跳绳','飞':'✈️ 飞机 · 飞翔','笑':'😄 微笑 · 笑声','哭':'😢 哭泣 · 大哭','吃':'🍽️ 吃饭 · 好吃','喝':'🥤 喝水 · 喝汤','睡':'😴 睡觉 · 午睡','春':'🌸 春天 · 春风','夏':'☀️ 夏天 · 夏日','秋':'🍂 秋天 · 秋风','冬':'❄️ 冬天 · 冬日','国':'🇨🇳 中国 · 国家','家':'🏠 家庭 · 回家','学':'📚 学习 · 上学','校':'🏫 学校 · 校园','老':'👴 老师 · 老人','师':'👩‍🏫 老师 · 师傅','爱':'❤️ 爱心 · 爱护','心':'💗 开心 · 关心','乐':'😊 快乐 · 欢乐','美':'🌺 美丽 · 美好','好':'👍 好人 · 美好','新':'✨ 新年 · 全新','旧':'📦 旧书 · 新旧','远':'🏔️ 远方 · 遥远','近':'📍 附近 · 远近','前':'⬆️ 前面 · 前进','后':'⬇️ 后面 · 后退','里':'📦 里面 · 公里','外':'🌍 外面 · 外公','开':'🔓 打开 · 开心','关':'🔒 关门 · 关心','出':'🚪 出去 · 出发','入':'🚪 进入 · 入口','回':'🔄 回来 · 回家','问':'❓ 问题 · 提问','答':'💬 回答 · 答案','说':'💬 说话 · 说明','听':'👂 听见 · 听课','看':'👀 看见 · 看书','读':'📖 读书 · 阅读','写':'✏️ 写字 · 书写','画':'🎨 画画 · 图画','唱':'🎤 唱歌 · 歌唱','玩':'🎮 玩耍 · 好玩','做':'🔨 做事 · 做工','工':'🔧 工作 · 工人','作':'📝 作业 · 工作','习':'📚 学习 · 练习','时':'⏰ 时间 · 小时','间':'⏳ 中间 · 时间','年':'📅 新年 · 今年','岁':'🎂 岁数 · 几岁','今':'📅 今天 · 如今','明':'🌞 明天 · 明亮','昨':'📅 昨天 · 昨晚','周':'📅 周末 · 一周','末':'🔚 周末 · 末尾','午':'🕛 中午 · 上午','饭':'🍚 吃饭 · 米饭','菜':'🥬 蔬菜 · 菜花','汤':'🍲 喝汤 · 汤圆','肉':'🥩 牛肉 · 猪肉','蛋':'🥚 鸡蛋 · 蛋糕','茶':'🍵 喝茶 · 茶叶','糖':'🍬 糖果 · 白糖','盐':'🧂 食盐 · 盐水','油':'🫒 石油 · 油条','衣':'👕 衣服 · 上衣','服':'👔 衣服 · 服务','鞋':'👟 鞋子 · 皮鞋','帽':'🧢 帽子 · 草帽','袜':'🧦 袜子 · 棉袜','裤':'👖 裤子 · 长裤','裙':'👗 裙子 · 花裙','穿':'👗 穿衣 · 穿过','脱':'👕 脱衣 · 脱下','洗':'🧼 洗手 · 洗澡','房':'🏠 房子 · 房间','屋':'🏠 屋子 · 房屋','院':'🏡 院子 · 医院','路':'🛤️ 马路 · 走路','桥':'🌉 大桥 · 小桥','街':'🏙️ 街道 · 大街','村':'🏘️ 村子 · 农村','城':'🏙️ 城市 · 长城','市':'🏪 城市 · 市场','园':'🏞️ 公园 · 花园','公':'🌳 公园 · 公共','船':'🚢 轮船 · 小船','机':'✈️ 飞机 · 手机','灯':'💡 电灯 · 灯光','钟':'🕐 时钟 · 钟表','伞':'☂️ 雨伞 · 打伞','包':'🎒 书包 · 面包','钱':'💰 金钱 · 钱包'};
+
+    var LEVEL_INFO = { 1:{name:'学前启蒙',icon:'🧸'}, 2:{name:'小学基础',icon:'📖'}, 3:{name:'小学进阶',icon:'✏️'}, 4:{name:'小学拓展',icon:'🎓'} };
+
+    function buildCharData(list, level) {
+        var r = [];
+        for (var i = 0; i < list.length; i++) {
+            var h = list[i];
+            r.push({ hanzi:h, pinyin:PINYIN_MAP[h]||'—', meaning:'常用字', example:EXAMPLE_MAP[h]||'📖 组词示例', strokes:STROKE_MAP[h]||0, level:level });
+        }
+        return r;
+    }
+    var ALL_CHARS = [];
+    ALL_CHARS = ALL_CHARS.concat(buildCharData(LEVEL1,1));
+    ALL_CHARS = ALL_CHARS.concat(buildCharData(LEVEL2,2));
+    ALL_CHARS = ALL_CHARS.concat(buildCharData(LEVEL3,3));
+    ALL_CHARS = ALL_CHARS.concat(buildCharData(LEVEL4,4));
+
+    // ==================== 状态 ====================
+    var currentLevel = 1, filteredList = [], currentIndex = 0, starTotal = 0;
+    var learnedSet = {}, soundPlayedSet = {}, gameWinSet = {};
+    var gameCounter = 0;
+
+    var $ = function(id){ return document.getElementById(id); };
+    var levelLabelEl=$('levelLabel'), levelBadgeEl=$('levelBadge'), currentIndexDisplay=$('currentIndexDisplay'), totalCountDisplay=$('totalCountDisplay'), starCountDisplay=$('starCountDisplay'), bigHanziEl=$('bigHanzi'), pinyinEl=$('pinyin'), meaningEl=$('meaning'), wordExampleEl=$('wordExample'), writingReqText=$('writingReqText'), characterCard=$('characterCard'), playSoundBtn=$('playSoundBtn'), learnBtn=$('learnBtn'), gameBtn=$('gameBtn'), nextBtn=$('nextBtn'), hintMessageEl=$('hintMessage'), levelSelector=$('levelSelector'), gameOverlay=$('gameOverlay'), gameTitle=$('gameTitle'), gameSubtitle=$('gameSubtitle'), gameContent=$('gameContent'), gameResult=$('gameResult'), closeGameBtn=$('closeGameBtn');
+
+    function getCurrentChar(){ return filteredList[currentIndex]; }
+    function getCharKey(s){ var c=getCurrentChar(); return currentLevel+'_'+c.hanzi+'_'+(s||''); }
+
+    function addStar(n, el) {
+        starTotal += n; starCountDisplay.textContent = starTotal;
+        var s = document.createElement('div'); s.className='star-fly'; s.textContent='⭐';
+        if(el){ var r=el.getBoundingClientRect(); s.style.left=(r.left+r.width/2-14)+'px'; s.style.top=(r.top-8)+'px'; }
+        else { s.style.left='45%'; s.style.top='25%'; }
+        document.body.appendChild(s); setTimeout(function(){ if(s.parentNode) s.parentNode.removeChild(s); },800);
+        characterCard.classList.add('pop'); setTimeout(function(){ characterCard.classList.remove('pop'); },300);
+    }
+    function setHint(m){ hintMessageEl.textContent='✨ '+m; }
+
+    function speakText(t) {
+        if(!window.speechSynthesis) return;
+        window.speechSynthesis.cancel();
+        var u=new SpeechSynthesisUtterance(t); u.lang='zh-CN'; u.rate=0.85; u.pitch=1.1;
+        var vs=window.speechSynthesis.getVoices();
+        for(var i=0;i<vs.length;i++){ if(vs[i].lang==='zh-CN'||vs[i].lang==='zh_CN'){ u.voice=vs[i]; break; } }
+        window.speechSynthesis.speak(u);
+    }
+
+    // ==================== 新增：读汉字 + 常用组词 ====================
+    // 从示例字段提取纯中文词语，如 "👨 大人 · 人们" → "大人，人们"
+    function extractWords(example) {
+        if (!example) return '';
+        // 去掉emoji和符号，保留中文和间隔点
+        var cleaned = example.replace(/[^\u4e00-\u9fa5·]/g, '').trim();
+        // 把 · 换成逗号，作为停顿
+        cleaned = cleaned.replace(/·/g, '，');
+        // 去掉首尾可能多余的空格
+        return cleaned;
+    }
+
+    // 先读汉字，再读组词（两段语音，中间有自然停顿）
+    function speakHanziWithWords(hanzi, example) {
+        if (!window.speechSynthesis) return;
+        window.speechSynthesis.cancel();
+        var words = extractWords(example);
+        var text = words ? hanzi + '，' + words : hanzi;
+        var u = new SpeechSynthesisUtterance(text);
+        u.lang = 'zh-CN';
+        u.rate = 0.8;   // 稍慢一点，方便小朋友听清
+        u.pitch = 1.1;
+        var vs = window.speechSynthesis.getVoices();
+        for (var i = 0; i < vs.length; i++) {
+            if (vs[i].lang === 'zh-CN' || vs[i].lang === 'zh_CN') { u.voice = vs[i]; break; }
+        }
+        window.speechSynthesis.speak(u);
+    }
+
+    function shuffle(a){ var b=a.slice(); for(var i=b.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)); var t=b[i]; b[i]=b[j]; b[j]=t; } return b; }
+
+    function makeDistractors(correct, n) {
+        var pool=[]; for(var i=0;i<filteredList.length;i++){ if(filteredList[i].hanzi!==correct) pool.push(filteredList[i].hanzi); }
+        if(pool.length<n){ for(var j=0;j<ALL_CHARS.length;j++){ if(ALL_CHARS[j].hanzi!==correct && pool.indexOf(ALL_CHARS[j].hanzi)===-1) pool.push(ALL_CHARS[j].hanzi); } }
+        return shuffle(pool).slice(0,n);
+    }
+
+    function getWritingReq(level, strokes) {
+        if(level===1) return '认识字形，能口头组词';
+        if(level===2) return '按笔顺书空，说出笔画（'+strokes+'画）';
+        if(level===3) return '独立书写，注意结构比例（'+strokes+'画）';
+        return '书写美观，间架匀称（'+strokes+'画）';
+    }
+
+    // ==================== 渲染 ====================
+    function updateLevelBadge(){ var i=LEVEL_INFO[currentLevel]; levelBadgeEl.innerHTML=i.icon+' <span id="levelLabel">'+i.name+'</span>'; levelLabelEl=document.getElementById('levelLabel'); }
+    function updateLevelChips(){ var cs=document.querySelectorAll('.level-chip'); for(var i=0;i<cs.length;i++){ cs[i].classList.toggle('active', parseInt(cs[i].getAttribute('data-level'),10)===currentLevel); } }
+
+    function renderCharacter() {
+        var c=getCurrentChar(); if(!c) return;
+        bigHanziEl.textContent=c.hanzi; pinyinEl.textContent=c.pinyin; meaningEl.textContent=c.meaning; wordExampleEl.textContent=c.example;
+        currentIndexDisplay.textContent=currentIndex+1; totalCountDisplay.textContent=filteredList.length; starCountDisplay.textContent=starTotal;
+        writingReqText.textContent=getWritingReq(currentLevel,c.strokes);
+    }
+
+    function switchLevel(lv) {
+        currentLevel=lv; filteredList=ALL_CHARS.filter(function(c){ return c.level===lv; });
+        currentIndex=0; gameCounter=0;
+        updateLevelBadge(); updateLevelChips(); renderCharacter();
+        setHint('已切换到 '+LEVEL_INFO[lv].name+'，共 '+filteredList.length+' 个字');
+    }
+
+    // ==================== 按钮 ====================
+    // 听一听：汉字 + 常用组词连读
+    function handlePlaySound(){
+        var c = getCurrentChar();
+        speakHanziWithWords(c.hanzi, c.example);
+        var k = getCharKey('sound');
+        if(!soundPlayedSet[k]){
+            soundPlayedSet[k] = true;
+            addStar(1, playSoundBtn);
+            setHint('🔊 你听到了“' + c.hanzi + '”和它的组词，获得1颗星星！');
+        } else {
+            setHint('🔊 再听一次“' + c.hanzi + '”和组词，真棒！');
+        }
+    }
+
+    function handleLearn(){ var c=getCurrentChar(); speakText(c.hanzi); var k=getCharKey('learn'); if(!learnedSet[k]){ learnedSet[k]=true; addStar(2,learnBtn); setHint('📖 “'+c.hanzi+'” '+c.pinyin+' —— '+c.example+' 获得2颗星星！'); } else { setHint('📚 你已经学过“'+c.hanzi+'”啦，再复习一次吧！'); } }
+    function handleNext(){ if(!filteredList.length) return; currentIndex=(currentIndex+1)%filteredList.length; gameCounter=0; renderCharacter(); setHint('当前 '+LEVEL_INFO[currentLevel].name+'，点击“玩一玩”挑战吧'); }
+
+    // ==================== 游戏系统：每级两套轮换 ====================
+    function openGame() {
+        gameResult.textContent=''; gameContent.innerHTML='';
+        var c=getCurrentChar();
+        var gameType;
+        if(currentLevel===1) gameType = gameCounter%2===0 ? 'mole' : 'memory';
+        else if(currentLevel===2) gameType = gameCounter%2===0 ? 'memory' : 'match3';
+        else if(currentLevel===3) gameType = gameCounter%2===0 ? 'match3' : 'drag';
+        else gameType = gameCounter%2===0 ? 'drag' : 'listen';
+        gameCounter++;
+
+        if(gameType==='mole') buildMoleGame(c);
+        else if(gameType==='memory') buildMemoryGame(c);
+        else if(gameType==='match3') buildMatch3Game(c);
+        else if(gameType==='drag') buildDragGame(c);
+        else if(gameType==='listen') buildListenGame(c);
+
+        gameOverlay.classList.add('active');
+    }
+    function closeGame(){ gameOverlay.classList.remove('active'); gameResult.textContent=''; }
+    function disableAll(container){ var es=container.querySelectorAll('*'); for(var i=0;i<es.length;i++){ es[i].style.pointerEvents='none'; } }
+
+    // ---------- 游戏1：打地鼠 ----------
+    function buildMoleGame(c) {
+        gameTitle.textContent='🔨 汉字打地鼠';
+        gameSubtitle.textContent='敲击正确的汉字“'+c.hanzi+'”';
+        var correct=c.hanzi;
+        var grid=document.createElement('div'); grid.className='mole-grid';
+        var holes=[];
+        var score=0, targetScore=3;
+        var timer=null;
+
+        for(var i=0;i<9;i++){
+            var hole=document.createElement('div'); hole.className='mole-hole';
+            var mole=document.createElement('div'); mole.className='mole';
+            hole.appendChild(mole); grid.appendChild(hole); holes.push({hole:hole,mole:mole});
+        }
+        gameContent.appendChild(grid);
+
+        var scoreDiv=document.createElement('div'); scoreDiv.style.cssText='font-size:1rem;color:#6b4f2b;font-weight:700;margin:6px 0;'; scoreDiv.textContent='得分：0/'+targetScore; gameContent.appendChild(scoreDiv);
+
+        function popMole() {
+            for(var i=0;i<holes.length;i++){ holes[i].mole.classList.remove('up','correct','wrong'); }
+            var idx=Math.floor(Math.random()*holes.length);
+            var isCorrect=Math.random()<0.5;
+            var char=isCorrect?correct:makeDistractors(correct,1)[0];
+            var m=holes[idx].mole;
+            m.textContent=char;
+            m.dataset.isCorrect=isCorrect?'1':'0';
+            m.classList.add('up');
+        }
+
+        function onMoleClick(e) {
+            var m=e.currentTarget;
+            if(!m.classList.contains('up')) return;
+            if(m.dataset.isCorrect==='1'){
+                m.classList.add('correct');
+                score++; scoreDiv.textContent='得分：'+score+'/'+targetScore;
+                speakText(correct);
+                if(score>=targetScore){
+                    clearInterval(timer);
+                    gameResult.textContent='🎉 打地鼠成功！获得3颗星星！';
+                    var k=getCharKey('mole'); if(!gameWinSet[k]){ gameWinSet[k]=true; addStar(3,gameBtn); }
+                    disableAll(grid);
+                }
+            } else {
+                m.classList.add('wrong');
+            }
+        }
+
+        for(var j=0;j<holes.length;j++){ holes[j].mole.addEventListener('click',onMoleClick); }
+        timer=setInterval(popMole,800);
+        popMole();
+        gameOverlay.dataset.timer=timer;
+
+        var tip=document.createElement('div'); tip.style.cssText='font-size:0.8rem;color:#b99e7a;margin-top:6px;'; tip.textContent='敲击显示正确汉字的“地鼠”'; gameContent.appendChild(tip);
+    }
+
+    // ---------- 游戏2：记忆翻牌 ----------
+    function buildMemoryGame(c) {
+        gameTitle.textContent='🃏 记忆翻牌';
+        gameSubtitle.textContent='找出所有配对（汉字+拼音）';
+        var correct=c.hanzi, correctPinyin=c.pinyin;
+        var others=makeDistractors(correct,2);
+        var pairs=[{h:correct,p:correctPinyin}];
+        for(var i=0;i<others.length;i++){
+            var oh=others[i], op='—';
+            for(var k=0;k<ALL_CHARS.length;k++){ if(ALL_CHARS[k].hanzi===oh){ op=ALL_CHARS[k].pinyin; break; } }
+            pairs.push({h:oh,p:op});
+        }
+        var cards=[];
+        for(var pi=0;pi<pairs.length;pi++){
+            cards.push({type:'hanzi',value:pairs[pi].h,key:pi});
+            cards.push({type:'pinyin',value:pairs[pi].p,key:pi});
+        }
+        cards=shuffle(cards);
+
+        var grid=document.createElement('div'); grid.className='memory-grid';
+        var flipped=[], matched=0, totalPairs=pairs.length, lock=false;
+
+        for(var ci=0;ci<cards.length;ci++){
+            (function(card){
+                var el=document.createElement('div'); el.className='memory-card';
+                el.innerHTML='<span class="front">❓</span><span class="back" style="display:none">'+card.value+'</span>';
+                el.addEventListener('click',function(){
+                    if(lock || el.classList.contains('flipped') || el.classList.contains('matched')) return;
+                    el.classList.add('flipped');
+                    el.querySelector('.front').style.display='none';
+                    el.querySelector('.back').style.display='block';
+                    flipped.push({el:el,card:card});
+                    if(flipped.length===2){
+                        lock=true;
+                        var a=flipped[0], b=flipped[1];
+                        if(a.card.key===b.card.key && a.card.type!==b.card.type){
+                            setTimeout(function(){
+                                a.el.classList.add('matched'); b.el.classList.add('matched');
+                                matched++; flipped=[]; lock=false;
+                                gameResult.textContent='✅ 配对成功！';
+                                if(matched===totalPairs){
+                                    gameResult.textContent='🎉 全部配对成功！获得3颗星星！';
+                                    var k=getCharKey('memory'); if(!gameWinSet[k]){ gameWinSet[k]=true; addStar(3,gameBtn); }
+                                    speakText(correct);
+                                }
+                            },300);
+                        } else {
+                            setTimeout(function(){
+                                a.el.classList.remove('flipped'); a.el.querySelector('.front').style.display='block'; a.el.querySelector('.back').style.display='none';
+                                b.el.classList.remove('flipped'); b.el.querySelector('.front').style.display='block'; b.el.querySelector('.back').style.display='none';
+                                flipped=[]; lock=false;
+                                gameResult.textContent='❌ 不匹配，再试试';
+                            },600);
+                        }
+                    }
+                });
+                grid.appendChild(el);
+            })(cards[ci]);
+        }
+        gameContent.appendChild(grid);
+        var tip=document.createElement('div'); tip.style.cssText='font-size:0.8rem;color:#b99e7a;margin-top:6px;'; tip.textContent='翻开卡片，把汉字和它的拼音配对'; gameContent.appendChild(tip);
+    }
+
+    // ---------- 游戏3：汉字消消乐 ----------
+    function buildMatch3Game(c) {
+        gameTitle.textContent='💥 汉字消消乐';
+        gameSubtitle.textContent='点击两个相同的汉字消除';
+        var correct=c.hanzi;
+        var types=[correct].concat(makeDistractors(correct,3));
+        var items=[];
+        for(var i=0;i<4;i++){ for(var j=0;j<4;j++){ items.push(types[j]); } }
+        items=shuffle(items);
+
+        var grid=document.createElement('div'); grid.className='match3-grid';
+        var selected=null, removedCount=0, total=16;
+
+        for(var k=0;k<items.length;k++){
+            (function(char){
+                var el=document.createElement('div'); el.className='match3-item'; el.textContent=char;
+                el.addEventListener('click',function(){
+                    if(el.classList.contains('removed')) return;
+                    if(selected===el){ el.classList.remove('selected'); selected=null; return; }
+                    if(!selected){ selected=el; el.classList.add('selected'); return; }
+                    if(selected.textContent===el.textContent){
+                        selected.classList.add('removed'); el.classList.add('removed');
+                        selected=null; removedCount+=2;
+                        gameResult.textContent='✅ 消除成功！';
+                        if(removedCount>=total){
+                            gameResult.textContent='🎉 全部消除！获得3颗星星！';
+                            var kk=getCharKey('match3'); if(!gameWinSet[kk]){ gameWinSet[kk]=true; addStar(3,gameBtn); }
+                            speakText(correct);
+                        }
+                    } else {
+                        var prev=selected; prev.classList.remove('selected');
+                        el.classList.add('selected'); selected=el;
+                        prev.classList.add('wrong'); setTimeout(function(){ prev.classList.remove('wrong'); },300);
+                    }
+                });
+                grid.appendChild(el);
+            })(items[k]);
+        }
+        gameContent.appendChild(grid);
+        var tip=document.createElement('div'); tip.style.cssText='font-size:0.8rem;color:#b99e7a;margin-top:6px;'; tip.textContent='点击两个相同的汉字消除，注意“'+correct+'”是目标字'; gameContent.appendChild(tip);
+    }
+
+    // ---------- 游戏4：拖拽拼字 ----------
+    function buildDragGame(c) {
+        gameTitle.textContent='🧲 拖拽拼字';
+        gameSubtitle.textContent='把部件拖到槽位拼成“'+c.hanzi+'”';
+        var target=c.hanzi;
+        var opts=shuffle([target].concat(makeDistractors(target,3)));
+
+        var slotsDiv=document.createElement('div'); slotsDiv.className='drag-area';
+        var slot=document.createElement('div'); slot.className='drag-slot'; slot.id='dragSlot'; slot.textContent='?';
+        slotsDiv.appendChild(slot); gameContent.appendChild(slotsDiv);
+
+        var piecesDiv=document.createElement('div'); piecesDiv.className='drag-pieces';
+        var selectedPiece=null;
+
+        for(var i=0;i<opts.length;i++){
+            (function(ch){
+                var p=document.createElement('div'); p.className='drag-piece'; p.textContent=ch; p.draggable=true;
+                p.addEventListener('dragstart',function(e){ selectedPiece=p; p.classList.add('dragging'); e.dataTransfer.setData('text/plain', ch); });
+                p.addEventListener('dragend',function(){ p.classList.remove('dragging'); });
+                p.addEventListener('click',function(){ if(selectedPiece) selectedPiece.style.outline='none'; selectedPiece=p; p.style.outline='3px solid #dbb13b'; });
+                piecesDiv.appendChild(p);
+            })(opts[i]);
+        }
+        gameContent.appendChild(piecesDiv);
+
+        slot.addEventListener('dragover',function(e){ e.preventDefault(); slot.classList.add('hover'); });
+        slot.addEventListener('dragleave',function(){ slot.classList.remove('hover'); });
+        slot.addEventListener('drop',function(e){
+            e.preventDefault(); slot.classList.remove('hover');
+            if(!selectedPiece) return;
+            var ch=selectedPiece.textContent;
+            if(ch===target){
+                slot.textContent=target; slot.classList.add('filled'); selectedPiece.classList.add('used');
+                gameResult.textContent='🎉 拼对了！获得3颗星星！';
+                var k=getCharKey('drag'); if(!gameWinSet[k]){ gameWinSet[k]=true; addStar(3,gameBtn); }
+                disableAll(piecesDiv); speakText(target);
+            } else {
+                gameResult.textContent='❌ 这个部件不对哦';
+                selectedPiece.style.animation='shake 0.3s'; setTimeout(function(){ selectedPiece.style.animation=''; },400);
+            }
+        });
+        slot.addEventListener('click',function(){
+            if(!selectedPiece) return;
+            var ch=selectedPiece.textContent;
+            if(ch===target){
+                slot.textContent=target; slot.classList.add('filled'); selectedPiece.classList.add('used');
+                gameResult.textContent='🎉 拼对了！获得3颗星星！';
+                var k=getCharKey('drag'); if(!gameWinSet[k]){ gameWinSet[k]=true; addStar(3,gameBtn); }
+                disableAll(piecesDiv); speakText(target);
+            } else {
+                gameResult.textContent='❌ 这个部件不对哦';
+                selectedPiece.style.animation='shake 0.3s'; setTimeout(function(){ selectedPiece.style.animation=''; },400);
+            }
+        });
+
+        var tip=document.createElement('div'); tip.style.cssText='font-size:0.8rem;color:#b99e7a;margin-top:6px;'; tip.textContent='拖动部件到上方槽位，或先点击部件再点击槽位'; gameContent.appendChild(tip);
+    }
+
+    // ---------- 游戏5：听音点字 ----------
+    function buildListenGame(c) {
+        gameTitle.textContent='👂 听音点字';
+        gameSubtitle.textContent='听发音，快速点出正确汉字';
+        var correct=c.hanzi;
+
+        var sp=document.createElement('button'); sp.className='speaker-btn'; sp.textContent='🔊';
+        sp.addEventListener('click',function(){ speakText(correct); });
+        gameContent.appendChild(sp);
+
+        var timerBar=document.createElement('div'); timerBar.className='timer-bar';
+        var timerFill=document.createElement('div'); timerFill.className='timer-fill'; timerFill.style.width='100%';
+        timerBar.appendChild(timerFill); gameContent.appendChild(timerBar);
+
+        var grid=document.createElement('div'); grid.className='listen-grid';
+        var opts=shuffle([correct].concat(makeDistractors(correct,3)));
+        var timeLeft=100, timerId=null, answered=false;
+
+        for(var i=0;i<opts.length;i++){
+            (function(ch){
+                var el=document.createElement('div'); el.className='listen-item'; el.textContent=ch;
+                el.addEventListener('click',function(){
+                    if(answered) return;
+                    if(ch===correct){
+                        answered=true; clearInterval(timerId);
+                        el.classList.add('correct');
+                        gameResult.textContent='🎉 答对了！获得3颗星星！';
+                        var k=getCharKey('listen'); if(!gameWinSet[k]){ gameWinSet[k]=true; addStar(3,gameBtn); }
+                        disableAll(grid); speakText(correct);
+                    } else {
+                        el.classList.add('wrong'); gameResult.textContent='❌ 再听听～';
+                        setTimeout(function(){ el.classList.remove('wrong'); },400);
+                    }
+                });
+                grid.appendChild(el);
+            })(opts[i]);
+        }
+        gameContent.appendChild(grid);
+
+        timerId=setInterval(function(){
+            timeLeft-=2;
+            timerFill.style.width=timeLeft+'%';
+            if(timeLeft<=0){
+                clearInterval(timerId);
+                if(!answered){ gameResult.textContent='⏰ 时间到！再试一次吧～'; disableAll(grid); }
+            }
+        },200);
+        gameOverlay.dataset.timer=timerId;
+
+        var tip=document.createElement('div'); tip.style.cssText='font-size:0.8rem;color:#b99e7a;margin-top:6px;'; tip.textContent='点击喇叭听发音，在时间结束前选出正确汉字'; gameContent.appendChild(tip);
+    }
+
+    function clearGameTimers(){
+        if(gameOverlay.dataset.timer){ clearInterval(parseInt(gameOverlay.dataset.timer)); gameOverlay.dataset.timer=''; }
+    }
+
+    // ==================== 事件 ====================
+    playSoundBtn.addEventListener('click',handlePlaySound);
+    learnBtn.addEventListener('click',handleLearn);
+    gameBtn.addEventListener('click',openGame);
+    nextBtn.addEventListener('click',handleNext);
+    closeGameBtn.addEventListener('click',function(){ clearGameTimers(); closeGame(); });
+    gameOverlay.addEventListener('click',function(e){ if(e.target===gameOverlay){ clearGameTimers(); closeGame(); } });
+    // 点击卡片也只读汉字+组词，保持一致性
+    characterCard.addEventListener('click',function(){
+        var c=getCurrentChar();
+        speakHanziWithWords(c.hanzi, c.example);
+        characterCard.classList.add('pop');
+        setTimeout(function(){ characterCard.classList.remove('pop'); },200);
+    });
+    levelSelector.addEventListener('click',function(e){
+        var t=e.target;
+        while(t && t!==levelSelector){ if(t.classList && t.classList.contains('level-chip')){ var lv=parseInt(t.getAttribute('data-level'),10); if(lv!==currentLevel) switchLevel(lv); return; } t=t.parentNode; }
+    });
+
+    // ==================== 初始化 ====================
+    if(window.speechSynthesis){ window.speechSynthesis.getVoices(); window.speechSynthesis.onvoiceschanged=function(){}; }
+    switchLevel(1);
+    setHint('点击“听一听”会读汉字和组词，点“玩一玩”挑战游戏');
+
+})();
+</script>
+</body>
+</html>
